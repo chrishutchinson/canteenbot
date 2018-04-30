@@ -1,8 +1,8 @@
 'use strict';
 
 require('babel-polyfill');
+require('isomorphic-fetch');
 
-const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const aws = require('aws-sdk');
 
@@ -106,24 +106,25 @@ const writeToS3 = (day, data) => {
 };
 
 // Serverless entry point
-module.exports.handler = (event, context, callback) => {
-  days.forEach((day, i) => {
-    const url = `${canteenUrl}/canteen-${day}`;
-    fetch(url)
-      .then(res => res.text())
-      .then(html => parseMenu(cheerio.load(html)))
-      .then(menuItems => buildJson(day, url, menuItems))
-      .then(json => {
-        // Write the current day's data
-        writeToS3(day, json);
+module.exports.handler = (event, context, callback) =>
+  Promise.all(
+    days.map((day, i) => {
+      const url = `${canteenUrl}/canteen-${day}`;
+      return fetch(url)
+        .then(res => res.text())
+        .then(html => parseMenu(cheerio.load(html)))
+        .then(menuItems => buildJson(day, url, menuItems))
+        .then(json => {
+          // Write the current day's data
+          writeToS3(day, json);
 
-        // Numbers from 0 (Mon) to 6 (Sun)
-        const today = (new Date().getDay() + 6) % 7;
-        const tomorrow = (today + 1) % 7;
+          // Numbers from 0 (Mon) to 6 (Sun)
+          const today = (new Date().getDay() + 6) % 7;
+          const tomorrow = (today + 1) % 7;
 
-        // Check if we also need to write 'today' or 'tomorrow'
-        if (i === today) writeToS3('today', json);
-        if (i === tomorrow) writeToS3('tomorrow', json);
-      });
-  });
-};
+          // Check if we also need to write 'today' or 'tomorrow'
+          if (i === today) writeToS3('today', json);
+          if (i === tomorrow) writeToS3('tomorrow', json);
+        });
+    })
+  );
