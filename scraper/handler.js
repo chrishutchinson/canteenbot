@@ -11,7 +11,7 @@ const S3 = new aws.S3({
   region: 'eu-west-1',
 });
 
-const { days } = require('../lib/helpers');
+const { days } = require('../lib/common');
 
 // Where to find the menus
 const canteenUrl = 'http://5438cpa251hgt.co.uk';
@@ -24,19 +24,33 @@ String.prototype.capitalise = function() {
 // Format a `location` string
 const formatLocation = str =>
   str
-    ? str.trim().toLowerCase().split(' ').map(s => s.capitalise()).join(' ')
+    ? str
+        .trim()
+        .toLowerCase()
+        .split(' ')
+        .map(s => s.capitalise())
+        .join(' ')
     : '';
 
 // Format a `menu` string
 const formatMenu = text =>
-  text ? text.replace(/\s\s+/g, ' ').trim().toLowerCase().capitalise() : '';
+  text
+    ? text
+        .replace(/\s\s+/g, ' ')
+        .trim()
+        .toLowerCase()
+        .capitalise()
+    : '';
 
 // Strip HTML tags from a string
 const stripTags = html =>
   html ? html.replace(/<!--(.|\n|\r)*?-->/g, '').replace(/<.*?>/g, ' ') : '';
 
 // Strip HTML entities from a string
-const stripEntities = $ => text => $('<div>').html(text).text();
+const stripEntities = $ => text =>
+  $('<div>')
+    .html(text)
+    .text();
 
 // Build menu data into a JSON object
 const buildJson = (day, url, menuItems) => ({
@@ -49,13 +63,17 @@ const buildJson = (day, url, menuItems) => ({
 // Parse menu data from a scraped HTML page
 const parseMenu = $ => {
   const menuHtml = $('#content-wrapper div.sqs-block-content');
-  const locations = $(menuHtml).find('h2').toArray();
+  const locations = $(menuHtml)
+    .find('h2')
+    .toArray();
 
   return locations.reduce((items, loc) => {
     const location = formatLocation($(loc).text());
 
     // Find all the `h3`s between this `h2` and the next `h2`
-    const menuTextNodes = $(loc).nextUntil('h2', 'h3').toArray();
+    const menuTextNodes = $(loc)
+      .nextUntil('h2', 'h3')
+      .toArray();
     const menu = menuTextNodes
       .map(m => $(m).html())
       .map(stripTags)
